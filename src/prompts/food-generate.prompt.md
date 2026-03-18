@@ -1,0 +1,2 @@
+<!-- DEPRECATED: Please use /prompts/food-generate.prompt.md instead -->
+"Ultra realistic professional food photography of [dish description input], gourmet style, vibrant colors, clear texture, visually appetizing, dramatic studio lighting, shallow depth of field, dark modern restaurant background, captured with an 85mm lens at f/1.8, 8k resolution, highly detailed, commercial advertising quality."

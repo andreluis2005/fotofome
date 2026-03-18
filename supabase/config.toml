@@ -1,0 +1,5 @@
+# Supabase CLI config — FotoFome AI
+# Referência: https://supabase.com/docs/guides/cli/config
+
+[project]
+id = "cgogdddxzscmfajeplti"
