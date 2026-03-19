@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.4.1] - 2026-03-19
+
+### Fix
+- **Enhance Image Schema Fix:** Removidos parâmetros inválidos (`controlnet_model`, `strength`, `num_outputs`, `guidance_scale`) do provider `lucataco/sdxl-controlnet`. Substituídos pelos corretos: `negative_prompt`, `condition_scale`, `num_inference_steps`.
+- **Timeout Stability:** Timeout ajustado de 25s para 35s, seguro dentro do limite Vercel serverless (60s). Retry condicional mantido para 429/503.
+
+### Docs
+- Reativado enhance no `ai-pipeline.md` com tabela de modelos e parâmetros.
+- Adicionada seção de Timeout Strategy ao `architecture.md`.
+- Registrados UXAgent e QAAgent no `agents.md`.
+
+---
+
+## [1.4.0] - 2026-03-19
+
+### Feature
+- **Image Enhancement (img2img):** Reativação do fluxo de melhoria de fotos com custo de 2 créditos. Migrado para o modelo `lucataco/sdxl-controlnet` (Canny) para garantir estabilidade e preservação da estrutura do prato original via Signed URLs.
+- **Automatic Menu Generation:** Novo endpoint `/api/menu/generate` utilizando modelo multimodal `LLaVA-13B` para criar títulos e descrições de pratos em Português.
+
+### Security
+- **Robust Credit Safety:** Injeção de verificações no `AIPipelineService` garantindo zero consumo de crédito em caso de timeout do provedor (25s) ou falhas na cadeia multimodal.
+- **Controlled Prompting:** O modo "Enhance" agora utiliza prompts internos controlados para garantir estética de fotografia de estúdio comercial food-grade.
+
+### Refactor
+- Upgrade da interface `IAIProvider` para suportar entradas baseadas em URL e métodos multimodais.
+- Implementação de **Exponential Backoff e Retry** (1 attempt) nas chamadas críticas de IA.
+
+---
+
 ## [1.1.0] - 2026-03-19
 
 ### Feature

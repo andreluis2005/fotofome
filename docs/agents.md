@@ -13,3 +13,5 @@ Cada agente é uma sub-entidade encarregada de gerir ou crescer partes de negóc
 5. **[PromptEngineerAgent](../agents/PromptEngineerAgent.md)**: Testa e mantém os prompts base textuais do ecossistema.
 6. **[DatabaseAgent](../agents/DatabaseAgent.md)**: Gerenciador de schemas, migrations, políticas de segurança e Row Level Security (RLS) do Supabase.
 7. **[GrowthAgent](../agents/GrowthAgent.md)**: Focado nas lógicas virais (ex: watermarks, refer links, e mecânicas gratuitas da landing page).
+8. **[UXAgent](../agents/UXAgent.md)**: Mapeia jornadas de usuário e define regras de interação/feedback visual antes da implementação pelo Frontend.
+9. **[QAAgent](../agents/QAAgent.md)**: Validador financeiro e funcional — antecipa cenários de falha, protege créditos, e exige testes E2E.

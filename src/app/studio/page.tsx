@@ -13,7 +13,7 @@ import { useDropzone } from "react-dropzone";
 function StudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialMode = searchParams.get('mode') === 'generate' ? 'generate' : 'enhance';
+  const initialMode = (searchParams.get('mode') as 'enhance' | 'generate') || 'generate';
   
   const [loading, setLoading] = useState(false);
   const [loadingTextIndex, setLoadingTextIndex] = useState(0);
@@ -38,9 +38,19 @@ function StudioContent() {
   const [result, setResult] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<'enhance' | 'generate'>(initialMode);
+
+  useEffect(() => {
+    const urlMode = searchParams.get('mode') as 'enhance' | 'generate';
+    if (urlMode && (urlMode === 'enhance' || urlMode === 'generate')) {
+      setMode(urlMode);
+    }
+  }, [searchParams]);
+
   const [credits, setCredits] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [menuData, setMenuData] = useState<{ dish_name: string; description: string } | null>(null);
+  const [loadingMenu, setLoadingMenu] = useState(false);
   
   // Imagem base forçada mockada para efeito visual no primeiro acesso
   const mockBeforeImg = "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop&blur=10";
@@ -117,53 +127,32 @@ function StudioContent() {
 
       if (mode === 'enhance') {
         endpoint = '/api/enhance';
-        if (!selectedFile && !selectedImage) {
+        if (!selectedFile) {
           toast.warning("Por favor, faça o upload da foto do seu prato primeiro.");
           setLoading(false);
           return;
         }
 
-        try {
-          // Flow 1: Upload directly to Supabase Storage (Safe Migration)
-          if (selectedFile) {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Usuário não autenticado");
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Usuário não autenticado");
 
-            const fileExt = selectedFile.name.split('.').pop();
-            const filePath = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const fileExt = selectedFile.name.split('.').pop();
+        const filePath = `${user.id}/${Date.now()}_input.${fileExt}`;
 
-            const { error: uploadError } = await supabase.storage
-              .from('food-images')
-              .upload(filePath, selectedFile);
-              
-            if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('food-images')
+          .upload(filePath, selectedFile);
+          
+        if (uploadError) throw uploadError;
 
-            const { data: signedData } = await supabase.storage
-              .from('food-images')
-              .createSignedUrl(filePath, 60 * 60);
+        const { data: signedData } = await supabase.storage
+          .from('food-images')
+          .createSignedUrl(filePath, 60 * 60);
 
-            if (!signedData?.signedUrl) throw new Error("Falha ao recuperar URL autenticada");
+        if (!signedData?.signedUrl) throw new Error("Falha ao recuperar URL autenticada");
 
-            body.image_url = signedData.signedUrl;
-          } else {
-             throw new Error("Missing selected file for priority upload");
-          }
-        } catch (uploadFailError) {
-          console.warn("[Upload Flow Failed] Falling back to Legacy Base64 Flow:", uploadFailError);
-          // Fallback (Legacy Flow): Carregar o reader apenas se o Storage falhar
-          if (selectedFile) {
-            const base64 = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.readAsDataURL(selectedFile);
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = (e) => reject(e);
-            });
-            body.imageBase64 = base64;
-          } else if (selectedImage && selectedImage.startsWith('data:image')) {
-            body.imageBase64 = selectedImage;
-          }
-        }
+        body.image_url = signedData.signedUrl;
       } else {
         endpoint = '/api/generate';
       }
@@ -181,12 +170,24 @@ function StudioContent() {
       }
 
       setResult(data.image);
+      setMenuData(null); // Reset menu for new image
       toast.success("Imagem gerada com sucesso!");
 
-      // Atualiza créditos após geração bem-sucedida
-      if (credits !== null) {
-        setCredits(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
-      }
+      // Refresh credits from DB to show real deduction
+      const fetchCredits = async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('id', user.id)
+            .limit(1)
+            .maybeSingle();
+          setCredits(profile?.credits ?? 0);
+        }
+      };
+      await fetchCredits();
     } catch (error: unknown) {
       console.error("AI Error:", error);
       if (error instanceof Error) {
@@ -214,15 +215,19 @@ function StudioContent() {
       <div className="flex space-x-4 mb-6">
         <button 
           onClick={() => setMode('enhance')}
-          className={`px-4 py-2 rounded-full font-medium text-sm transition ${mode === 'enhance' ? 'bg-orange-600 text-white' : 'glass text-gray-400 hover:text-white'}`}
+          className={`px-4 py-2 rounded-full font-medium text-sm transition ${mode === 'enhance' ? 'bg-orange-600 text-white shadow-lg' : 'glass text-gray-400 hover:text-white'}`}
         >
-          Melhorar Foto base
+          Melhorar Foto base (2 Créditos)
         </button>
         <button 
-          onClick={() => setMode('generate')}
-          className={`px-4 py-2 rounded-full font-medium text-sm transition ${mode === 'generate' ? 'bg-orange-600 text-white' : 'glass text-gray-400 hover:text-white'}`}
+          onClick={() => {
+            setMode('generate');
+            setSelectedImage(null);
+            setSelectedFile(null);
+          }}
+          className={`px-4 py-2 rounded-full font-medium text-sm transition ${mode === 'generate' ? 'bg-orange-600 text-white shadow-lg' : 'glass text-gray-400 hover:text-white'}`}
         >
-          Gerar do Zero (Texto)
+          Gerar do Zero (1 Crédito)
         </button>
       </div>
 
@@ -289,13 +294,13 @@ function StudioContent() {
             ) : credits === 0 ? (
               <><Sparkles className="mr-2 w-5 h-5" /> Fazer Upgrade (0 Créditos)</>
             ) : (
-              <><Sparkles className="mr-2 w-5 h-5" /> Transformar Mágica (Custa 1 Crédito)</>
+              <><Sparkles className="mr-2 w-5 h-5" /> {mode === 'enhance' ? 'Melhorar Imagem (2 Créditos)' : 'Gerar do Zero (1 Crédito)'}</>
             )}
           </button>
         </div>
 
         {/* Painel Direito: Resultado Dinâmico (Slider) */}
-        <div className="flex flex-col">
+        <div className="flex flex-col space-y-4">
           <div className="flex-1 glass rounded-3xl overflow-hidden flex items-center justify-center p-2 border border-white/10 h-[500px]">
             {loading ? (
               <div className="flex flex-col items-center">
@@ -318,6 +323,59 @@ function StudioContent() {
               </div>
             )}
           </div>
+
+          {result && !loading && (
+            <div className="glass rounded-3xl p-6 border border-orange-500/20">
+              {menuData ? (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <h3 className="text-orange-400 font-bold text-lg">{menuData.dish_name}</h3>
+                  <p className="text-sm text-gray-300 leading-relaxed">{menuData.description}</p>
+                  <div className="pt-2 flex space-x-2">
+                    <button className="text-xs bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full text-gray-400 transition">Copiar Texto</button>
+                    <button className="text-xs bg-orange-600/20 hover:bg-orange-600/40 px-3 py-1 rounded-full text-orange-400 transition" onClick={() => setMenuData(null)}>Refazer IA</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-orange-500/10 p-2 rounded-xl">
+                      <Sparkles className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">Pronto para o Cardápio?</p>
+                      <p className="text-xs text-gray-500">Gere nome e descrição (1 crédito)</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if (!result) return;
+                      setLoadingMenu(true);
+                      try {
+                        const res = await fetch('/api/menu/generate', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ image_url: result, food_description: prompt })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error);
+                        setMenuData(data.data);
+                        setCredits(prev => (prev !== null ? prev - 1 : 0));
+                        toast.success("Dados do cardápio gerados!");
+                      } catch (e: any) {
+                        toast.error(e.message || "Falha ao gerar cardápio");
+                      } finally {
+                        setLoadingMenu(false);
+                      }
+                    }}
+                    disabled={loadingMenu}
+                    className="bg-orange-600 hover:bg-orange-500 text-white text-sm px-4 py-2 rounded-xl font-bold transition disabled:opacity-50"
+                  >
+                    {loadingMenu ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Gerar Cardápio"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>

@@ -16,46 +16,26 @@ export async function POST(req: Request) {
 
     const userId = user.id;
 
-    // Layer 2: API User-based Rate Limiting (3 requests per minute)
+    // Layer 2: API User-based Rate Limiting
     const rateLimit = getRateLimit('user');
     if (rateLimit) {
-      const { success } = await rateLimit.limit(`user_${userId}`);
+      const { success } = await rateLimit.limit(`user_${userId}_enhance`);
       if (!success) {
         logSecurityEvent('rate_limit_exceeded', { layer: 'api', user_id: userId, path: '/api/enhance' });
         return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
       }
     }
 
-    const { prompt, imageBase64, image_url } = await req.json();
+    const { image_url } = await req.json();
 
-    if (!prompt || typeof prompt !== 'string') {
-      return NextResponse.json({ error: 'Valid prompt string is required' }, { status: 400 });
+    if (!image_url || typeof image_url !== 'string') {
+      return NextResponse.json({ error: 'Valid image_url is required for enhancement' }, { status: 400 });
     }
 
-    let imageBuffer: Buffer;
-
-    if (image_url) {
-      // Flow 1: Supabase Storage Integration (New Pattern)
-      const fileRes = await fetch(image_url);
-      if (!fileRes.ok) {
-        return NextResponse.json({ error: 'Failed to retrieve uploaded image from storage' }, { status: 400 });
-      }
-      const arrayBuffer = await fileRes.arrayBuffer();
-      imageBuffer = Buffer.from(arrayBuffer);
-    } else if (imageBase64) {
-      // Flow 2: Legacy Base64 Integration (Fallback / Backward-Compatibility)
-      if (typeof imageBase64 !== 'string' || !imageBase64.startsWith('data:image')) {
-        return NextResponse.json({ error: 'Valid image base64 string is required' }, { status: 400 });
-      }
-      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-      imageBuffer = Buffer.from(base64Data, 'base64');
-    } else {
-      return NextResponse.json({ error: 'Missing valid image source (image_url or imageBase64)' }, { status: 400 });
-    }
-
+    // Call Pipeline (2 credits consumed internally if success)
     const result = await AIPipelineService.enhanceFoodImage({
       userId,
-      imageBuffer,
+      imageUrl: image_url,
     });
 
     if (!result.success || !result.data) {
@@ -69,9 +49,8 @@ export async function POST(req: Request) {
       .upload(fileName, result.data, { contentType: 'image/jpeg' });
       
     if (uploadError) {
-      console.error("[API/enhance] Storage save failed, yielding legacy fallback:", uploadError);
-      const finalBase64Image = `data:image/jpeg;base64,${result.data.toString('base64')}`;
-      return NextResponse.json({ success: true, image: finalBase64Image });
+      console.error("[API/enhance] Storage save failed:", uploadError);
+      return NextResponse.json({ error: 'Failed to save enhanced image to storage' }, { status: 500 });
     }
 
     // Fetch Private Signed URL valid for 24 hours
@@ -80,8 +59,7 @@ export async function POST(req: Request) {
       .createSignedUrl(fileName, 60 * 60 * 24);
 
     if (!signedData?.signedUrl) {
-      const finalBase64Image = `data:image/jpeg;base64,${result.data.toString('base64')}`;
-      return NextResponse.json({ success: true, image: finalBase64Image });
+      return NextResponse.json({ error: 'Failed to generate signed URL' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, image: signedData.signedUrl });

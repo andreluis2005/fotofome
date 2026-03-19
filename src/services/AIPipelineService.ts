@@ -12,7 +12,14 @@ interface GenerateParams {
 
 interface EnhanceParams {
   userId: string;
-  imageBuffer: Buffer;
+  imageBuffer?: Buffer;
+  imageUrl?: string;
+}
+
+interface MenuParams {
+  userId: string;
+  imageUrl: string;
+  foodDescription?: string;
 }
 
 export class AIPipelineService {
@@ -24,20 +31,44 @@ export class AIPipelineService {
     return new MockProvider();
   }
 
-  private static async executeWithProvider(method: 'generate' | 'enhance', prompt: string, imageBuffer?: Buffer): Promise<{ output: string | Uint8Array; providerName: string }> {
+  private static async executeWithProvider(
+    method: 'generate' | 'enhance' | 'menu' | 'menu-fallback', 
+    prompt: string, 
+    imageSource?: Buffer | string
+  ): Promise<{ output: string | Uint8Array; providerName: string }> {
     const provider = await this.getProvider();
-    try {
-      let output: string | Uint8Array;
-      if (method === 'generate') {
-         output = await provider.generateImage(prompt);
-      } else {
-         output = await provider.enhanceImage(new Uint8Array(imageBuffer!), prompt);
+    
+    const timeout = 35000; // 35s – safe within Vercel 60s serverless limit
+    const execute = async () => {
+      if (method === 'generate') return await provider.generateImage(prompt);
+      if (method === 'enhance') return await provider.enhanceImage(imageSource as any, prompt);
+      if (method === 'menu' && provider.generateMenu) return await provider.generateMenu(imageSource as string, prompt);
+      if (method === 'menu-fallback' && provider.generateMenuFallback) return await provider.generateMenuFallback(prompt);
+      throw new Error(`Method ${method} not supported by provider.`);
+    };
+
+    const runWithRetry = async (retries = 1): Promise<any> => {
+      try {
+        return await Promise.race([
+          execute(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), timeout))
+        ]);
+      } catch (e: any) {
+        if (retries > 0 && (e.message === 'TIMEOUT' || e.status === 429 || e.status === 503)) {
+          console.log(`[AIPipeline] Retrying method '${method}'...`);
+          return runWithRetry(retries - 1);
+        }
+        throw e;
       }
+    };
+
+    try {
+      const output = await runWithRetry();
       console.log(`[AIPipeline] Provider '${provider.providerName}' succeeded for method '${method}'.`);
       return { output, providerName: provider.providerName };
     } catch (e: unknown) {
-      console.error(`[AIPipeline] Provider ${provider.providerName} failed:`, e);
-      throw new Error(`A Inteligência Artificial falhou tecnicamente ou estourou o timeout. Tente novamente mais tarde. (Seu crédito não foi consumido).`);
+      console.error(`[AIPipeline] Provider ${provider.providerName} failed:`, JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
+      throw new Error(`A Inteligência Artificial falhou ou demorou demais. Tente novamente. (Créditos preservadores).`);
     }
   }
 
@@ -125,32 +156,73 @@ export class AIPipelineService {
 
   /**
    * Pipeline 2: Aprimora Foto Amadora Caseira (Image-to-Image)
+   * Custo: 2 Créditos (Garante qualidade comercial)
    */
   static async enhanceFoodImage(params: EnhanceParams): Promise<{ success: boolean; data?: Buffer; error?: string; provider?: string }> {
     try {
       console.log(`[AIPipeline] Initiating image enhancement for User: ${params.userId}`);
       
-      // 1. Load Prompt (ControlNet Guidance)
-      const guidancePrompt = this.loadPromptTemplate('food-enhance.prompt.md');
-      console.log(`[AIPipeline] Enhancement Base Guidance: ${guidancePrompt.substring(0, 30)}...`);
+      // 1. Controlled Internal Prompt (Quality Focused)
+      const controlledPrompt = "Ultra-realistic professional food photography, commercial studio lighting, high resolution, delicious appetite appeal, 8k, sharp focus.";
 
-      // 2. Integração com Provedores
-      const { output, providerName } = await this.executeWithProvider('enhance', guidancePrompt, params.imageBuffer);
+      // 2. Integração com Provedores (Usando URL se disponível para estabilidade)
+      const source = params.imageUrl || params.imageBuffer;
+      if (!source) throw new Error("Missing image source (imageUrl or imageBuffer)");
+
+      const { output, providerName } = await this.executeWithProvider('enhance', controlledPrompt, source as any);
       let enhancedBuffer = await this.processProviderOutput(output);
 
-      // 3. Aplicar Watermark (Sempre final stage)
+      // 3. Aplicar Watermark
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       enhancedBuffer = await this.applyWatermark(enhancedBuffer) as any;
 
-      // 4. Créditos — só cobra se o provider real foi usado (não mock)
+      // 4. Créditos — Custo de 2 créditos para Enhance
       if (providerName !== 'mock-ai-provider') {
-        await CreditService.consumeCredits(params.userId, 1);
-        console.log(`[AIPipeline] Credits charged. Provider: ${providerName}`);
-      } else {
-        console.log(`[AIPipeline] MockProvider used — credits NOT charged.`);
+        await CreditService.consumeCredits(params.userId, 2);
+        console.log(`[AIPipeline] 2 credits charged. Provider: ${providerName}`);
       }
 
       return { success: true, data: enhancedBuffer, provider: providerName };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /**
+   * Pipeline 3: Geração de Cardápio (Vision/Text)
+   * Custo: 1 Crédito
+   */
+  static async generateMenuData(params: MenuParams): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      console.log(`[AIPipeline] Generating menu for User: ${params.userId}`);
+
+      const prompt = "Analise este prato e descreva-o para um cardápio comercial. Retorne APENAS um JSON no formato: { \"dish_name\": \"...\", \"description\": \"...\" }. Idioma: Português do Brasil.";
+
+      let menuOutput: string;
+      try {
+        // Tentativa 1: Multimodal (LLaVA)
+        const { output } = await this.executeWithProvider('menu', prompt, params.imageUrl);
+        menuOutput = String(output);
+      } catch (e) {
+        console.warn("[AIPipeline] Vision model failed, attempting text fallback...", e);
+        // Tentativa 2: Fallback (Text Model)
+        const fallbackPrompt = `Crie um nome criativo e uma descrição irresistível para este prato: ${params.foodDescription || 'Hambúrguer Gourmet'}. Retorne JSON { "dish_name": "...", "description": "..." } em PT-BR.`;
+        const { output } = await this.executeWithProvider('menu-fallback', fallbackPrompt);
+        menuOutput = String(output);
+      }
+
+      // Sanitize JSON output (handle cases where model adds markdown triple backticks)
+      const jsonMatch = menuOutput.match(/\{[\s\S]*\}/);
+      const cleanJson = jsonMatch ? jsonMatch[0] : menuOutput;
+      const data = JSON.parse(cleanJson);
+
+      // Descontar 1 crédito se não for mock
+      const provider = await this.getProvider();
+      if (provider.providerName !== 'mock-ai-provider') {
+        await CreditService.consumeCredits(params.userId, 1);
+      }
+
+      return { success: true, data };
     } catch (error: unknown) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }

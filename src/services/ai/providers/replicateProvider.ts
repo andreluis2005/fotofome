@@ -43,25 +43,32 @@ export class ReplicateProvider implements IAIProvider {
     return result.toString();
   }
 
-  async enhanceImage(imageBuffer: Uint8Array, prompt: string): Promise<string | Uint8Array> {
-    console.log(`[ReplicateProvider] Enhancing image`);
+  async enhanceImage(imageUrl: string, prompt: string): Promise<string | Uint8Array> {
+    console.log(`[ReplicateProvider] Enhancing image from URL: ${imageUrl.substring(0, 50)}...`);
     
-    const mimeType = "image/jpeg";
-    const base64Str = Buffer.from(imageBuffer).toString('base64');
-    const dataUri = `data:${mimeType};base64,${base64Str}`;
-
-    const output = await this.replicate.run(
-      "bytedance/sdxl-lightning-4step:5f24084160c9089501c1c1a967fb4734ea071db1eb4b87aeed7a9afda2fb8096",
-      {
-        input: {
-          image: dataUri,
-          prompt: prompt,
-          num_outputs: 1,
+    try {
+      const output = await this.replicate.run(
+        "lucataco/sdxl-controlnet:06d5ff16773950ef500732890ca15eb901bc09395d985a676a6616a9eb789b7b",
+        {
+          input: {
+            image: imageUrl,
+            prompt: prompt,
+            negative_prompt: "low quality, bad quality, blurry, amateur, poorly lit, ugly food",
+            condition_scale: 0.8,
+            num_inference_steps: 50,
+          }
         }
-      }
-    );
+      );
 
-    return this.processOutput(output);
+      if (!output) {
+        throw new Error("Replicate returned empty output for enhanceImage");
+      }
+
+      return this.processOutput(output);
+    } catch (error: any) {
+      console.error(`[AI_ENHANCE_ERROR] Model: lucataco/sdxl-controlnet | Input URL: ${imageUrl} | Error:`, error);
+      throw error; // Let AIPipelineService handle the fallback/no-credit logic
+    }
   }
 
   async generateImage(prompt: string): Promise<string | Uint8Array> {
@@ -70,14 +77,44 @@ export class ReplicateProvider implements IAIProvider {
     const output = await this.replicate.run(
       "black-forest-labs/flux-schnell",
       {
-        input: {
-          prompt: prompt,
-          num_outputs: 1,
-          output_format: "png",
-        }
+        input: { prompt }
       }
     );
     
     return this.processOutput(output);
+  }
+
+  async generateMenu(imageUrl: string, prompt: string): Promise<string> {
+    console.log(`[ReplicateProvider] Analyzing image for menu: ${imageUrl.substring(0, 50)}...`);
+    
+    const output = await this.replicate.run(
+      "yorickvp/llava-13b:b5f6223d9f794b1bc0058e745f9226500bd444f6f79be27063f22588c2273641",
+      {
+        input: {
+          image: imageUrl,
+          prompt: prompt,
+          max_tokens: 500,
+        }
+      }
+    );
+    
+    return String(output);
+  }
+
+  async generateMenuFallback(textPrompt: string): Promise<string> {
+    console.log(`[ReplicateProvider] Running text fallback for menu`);
+    
+    const output = await this.replicate.run(
+      "meta/meta-llama-3-70b-instruct",
+      {
+        input: {
+          prompt: textPrompt,
+          max_new_tokens: 500,
+        }
+      }
+    );
+    
+    // llama-3-70b-instruct returns array of strings usually in this SDK
+    return Array.isArray(output) ? output.join('') : String(output);
   }
 }

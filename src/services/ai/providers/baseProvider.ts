@@ -5,14 +5,22 @@ export interface IAIProvider {
   providerName: string;
 
   /**
-   * Recebe um Image Buffer (Uint8Array) amador + Prompt de Enhancement.
-   * Retorna um buffer ou URL gerado.
+   * Recebe um Image URL (Signed URL) ou Buffer amador + Prompt de Enhancement.
    */
-  enhanceImage(imageBuffer: Uint8Array, prompt: string): Promise<string | Uint8Array>;
+  enhanceImage(imageSource: string | Uint8Array, prompt: string): Promise<string | Uint8Array>;
 
   /**
-   * Recebe uma String detalhada e gera uma imagem totalmente abstrata em alta resolução.
-   * Retorna um buffer ou URL.
+   * Gera imagem abstrata por Texto.
    */
   generateImage(prompt: string): Promise<string | Uint8Array>;
+
+  /**
+   * Analisa imagem (Multimodal) para gerar texto de cardápio.
+   */
+  generateMenu?(imageUrl: string, prompt: string): Promise<string>;
+
+  /**
+   * Fallback de texto para cardápio.
+   */
+  generateMenuFallback?(textPrompt: string): Promise<string>;
 }

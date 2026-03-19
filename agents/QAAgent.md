@@ -13,8 +13,8 @@ O QAAgent deve desenhar os piores cenários de teste reais sobre a lógica exist
    - **Critério de Aceitação:** Exigir que o Backend (ex: `CreditService.consumeCredits`) efetue validações de Lock, limitação de Taxa via IP, ou deduções atômicas baseadas em Row Level Locks no banco (Supabase RLS) para impedir duas gerações IA simultâneas sugando um saldo único.
 
 2. **Tratamento Seguro em Falha/Timeout de IA:**
-   - **Análise Requerida:** O Edge serverless da Vercel cai em 60 segundos padrão, enquanto a IA do Replicate (`AIPipelineService`) na ponta pode demorar ou travar.
-   - **Critério de Aceitação:** O fluxo financeiro no código não pode usar débitos perigosos isolados. O `CreditService` nunca pode descontar se o Provedor (`replicate`) não confirmou o delivery em buffer total. Testar simulando um timeout proposital na rede durante a IA para conferir na tabela `profiles` se o saldo permanece intocado e o fallback passivo do Mock não consome saldo sem aviso.
+   - **Análise Requerida:** O Edge serverless da Vercel cai em 60 segundos padrão (`maxDuration: 60`), enquanto a IA do Replicate (`AIPipelineService`) na ponta pode demorar ou travar.
+   - **Critério de Aceitação:** Timeout individual de 35s por chamada com retry condicional (apenas 429/503) respeitando orçamento total ≤ 55s. O `CreditService` nunca pode descontar se o Provedor (`replicate`) não confirmou o delivery em buffer total. Testar simulando um timeout proposital na rede durante a IA para conferir na tabela `profiles` se o saldo permanece intocado e o fallback passivo do Mock não consome saldo sem aviso.
 
 3. **Consistência Perigosa em Paralelismo de Auth:**
    - **Análise Requerida:** O arquivo `signup/page.tsx` tenta efetuar um `.upsert()` deFallback contendo 5 créditos gratuitos, enquanto, exatamente ao mesmo tempo, a Database Trigger `handle_new_user()` fará um `insert` local no banco com 5 créditos bônus para a mesma recém-criada UUID auth.
