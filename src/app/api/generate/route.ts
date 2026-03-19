@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AIPipelineService } from '@/services/AIPipelineService';
 import { createClient } from '@/lib/supabase/server';
+import { getRateLimit, logSecurityEvent } from '@/lib/rate-limit';
 
 export const maxDuration = 60; // Allow sufficient time for AI APIs
 
@@ -14,6 +15,16 @@ export async function POST(req: Request) {
     }
 
     const userId = user.id;
+
+    // Layer 2: API User-based Rate Limiting (3 requests per minute)
+    const rateLimit = getRateLimit('user');
+    if (rateLimit) {
+      const { success } = await rateLimit.limit(`user_${userId}`);
+      if (!success) {
+        logSecurityEvent('rate_limit_exceeded', { layer: 'api', user_id: userId, path: '/api/generate' });
+        return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+      }
+    }
 
     const { prompt } = await req.json();
 

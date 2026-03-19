@@ -12,3 +12,8 @@ O fluxo é o seguinte:
 3. O `UPDATE` aplica o decremento unicamente se o registro bater a condição lógica `credits >= amount`.
 4. Uma inserção paralela em `credit_transactions` age como log perpétuo e auditável daquela dedução.
 5. Um JSON de retorno (`{ success: boolean, remaining_credits: number }`) comunica à API se a transação atômica teve efeito.
+
+## Anti-Abuse Shield (Rate Limiting)
+Para evitar o consumo massivo de infraestrutura de IA e abusos via formulários (Scraping ou bruteforce), utilizamos  uma arquitetura Multi-Layer baseada em **Upstash Redis**:
+- **Layer 1 (Edge Middleware):** Controla volumetria bruta de origem IP nas rotas de Autenticação (`/login`, `/signup`). Total: 5 req/min/IP.
+- **Layer 2 (Backend APIs):** Em pontos com custo financeiro pesado (`/api/generate` etc), aplicamos throttling por **ID de Usuário** logado. Total: 3 req/min/User.

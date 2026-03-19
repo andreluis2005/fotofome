@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getRateLimit, logSecurityEvent } from '@/lib/rate-limit'
 
 // Rotas que exigem autenticação
 const protectedRoutes = ['/dashboard', '/studio']
@@ -45,9 +46,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Rate limiting placeholder for the architecture
-  if (pathname.startsWith('/api/')) {
-     // Em produção real, integraríamos Upstash Redis aqui para o Rate Limit de Auth.
+  // Proteção Global de Camada 1: Rate Limiting baseado em IP via Middleware
+  if (pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/api/')) {
+    const rateLimit = getRateLimit('ip');
+    if (rateLimit) {
+      // Identificação via x-forwarded-for ou request.ip
+      const ip = request.ip ?? request.headers.get('x-forwarded-for') ?? '127.0.0.1';
+      const { success } = await rateLimit.limit(`ip_${ip}`);
+      
+      if (!success) {
+        logSecurityEvent('rate_limit_exceeded', { layer: 'middleware', ip, path: pathname });
+        return NextResponse.json(
+          { error: 'Too many requests. Please wait a moment.' },
+          { status: 429 }
+        );
+      }
+    }
   }
 
   return response

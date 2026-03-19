@@ -21,3 +21,8 @@ JSON estruturado garantindo melhor clareza para o App Router:
 ## `CreditService.ts`
 O módulo que encapsula interações transacionais com o Supabase SSR Client. 
 Ao usar o `CreditService.consumeCredits()`, o backend joga um `throw new Error(...)` caso o banco rejeite a dedução, mantendo o controle de fluxo limpo nos controllers da API de IA (`/api/generate` etc).
+
+## Upstash Redis (Rate Limiter)
+A biblioteca `src/lib/rate-limit.ts` centraliza as lógicas das instâncias do `@upstash/ratelimit`.
+O uso foi separado em dois tokens `getRateLimit('ip')` vs `getRateLimit('user')` para garantir restrições granulares. 
+Todos os eventos bloqueados são exportados via o helper `logSecurityEvent` desenhado nativamente para integração com ferramentas de APM e SIEM em invés de poluir os logs padrão.
