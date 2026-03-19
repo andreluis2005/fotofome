@@ -1,2 +1,0 @@
-<!-- DEPRECATED: Please use /prompts/food-enhance.prompt.md instead -->
-"Enhance this food photograph to professional commercial standards. Fix shadows and lighting to make the food pop, increase color vibrancy naturally, emphasize texture making it look extremely appetizing and fresh, remove harsh specular highlights, ensure the focal point is razor sharp with a smooth soft bokeh background blur, preserve the original dish geometry but upgrade the aesthetic presentation."
