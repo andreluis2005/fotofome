@@ -8,13 +8,19 @@ import {
   Mail, 
   Lock, 
   User,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,28 +47,13 @@ export default function SignupPage() {
         throw authError;
       }
 
-      const user = data?.user;
-      if (user) {
-        // O perfil é criado automaticamente pelo trigger handle_new_user() no banco.
-        // Fazemos apenas um upsert de fallback por segurança, caso o trigger falhe.
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({ 
-            id: user.id, 
-            credits: 5, 
-            role: 'user',
-            full_name: fullName
-          });
-
-        if (profileError) {
-          // Não interrompe o fluxo — o trigger provavelmente já criou o perfil
-          console.warn("Profile upsert fallback failed (trigger should have handled it):", profileError.message);
-        }
-      }
-
-      // Automatically redirect or show message depending on your Supabase config
-      alert("Cadastro realizado! Verifique seu e-mail para confirmar a conta.");
-      window.location.href = "/login";
+      // O perfil e os créditos são criados exclusivamente pela trigger `handle_new_user` no banco.
+      // Isso elimina logs de erro de duplicação e garante integridade referencial.
+      
+      toast.success("Bem-vindo! Levando você ao estúdio...");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1500);
     } catch (err: unknown) {
       console.error("Signup error:", err);
       if (err instanceof Error && err.message.includes("Failed to fetch")) {
@@ -145,13 +136,20 @@ export default function SignupPage() {
                   <Lock className="w-5 h-5" />
                 </div>
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Mínimo 8 caracteres"
-                  className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                  className="w-full pl-11 pr-12 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 
@@ -176,6 +174,11 @@ export default function SignupPage() {
                 <>Criar conta grátis <Sparkles className="w-5 h-5" /></>
               )}
             </button>
+
+            <p className="text-[11px] text-center text-gray-500 leading-relaxed mt-4">
+              Ao criar sua conta, você concorda com nossos <br className="sm:hidden" />
+              <Link href="#" className="underline hover:text-gray-300 transition-colors">Termos de Uso</Link> e <Link href="#" className="underline hover:text-gray-300 transition-colors">Política de Privacidade</Link>.
+            </p>
           </form>
 
           {/* Google / Github Login buttons commented out per Auth Fix Phase request

@@ -13,8 +13,11 @@ import {
   Camera
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +40,8 @@ export default function LoginPage() {
         throw authError;
       }
 
-      window.location.href = "/dashboard";
+      toast.success("Bem vindo de volta!");
+      router.push("/dashboard");
     } catch (err: unknown) {
       console.error("Login error:", err);
       if (err instanceof Error && err.message.includes("Failed to fetch")) {

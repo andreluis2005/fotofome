@@ -14,43 +14,26 @@ export interface UserCredits {
  */
 export class CreditService {
   /**
-   * Garante que o perfil existe. Se não existir, cria com créditos iniciais.
+   * Obtém o perfil de forma segura, presumindo que a trigger do DB está correta.
+   * Usando .limit(1) bloqueia a quebra "Cannot coerce the result to a single JSON object" 
+   * originada por dados sujos de ambiente dev antigo.
    */
-  private static async ensureProfile(supabase: ReturnType<typeof createClient>, userId: string): Promise<number> {
-    console.log(`[CreditService] ensureProfile for userId: ${userId}`);
-
+  private static async getProfileSafe(supabase: ReturnType<typeof createClient>, userId: string): Promise<number> {
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('credits')
       .eq('id', userId)
+      .limit(1)
       .maybeSingle();
 
-    console.log(`[CreditService] profile lookup result:`, { profile, error: error?.message });
-
     if (error) {
-      console.error(`[CreditService] Error fetching profile: ${error.message}`);
-      // Tenta criar o perfil mesmo assim
+      console.error(`[CreditService] Erro consultando perfil: ${error.message}`);
+      throw new Error("Erro interno ao validar créditos.");
     }
 
     if (!profile) {
-      console.log(`[CreditService] No profile found — creating one with 5 credits for userId: ${userId}`);
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert({ id: userId, credits: 5 });
-
-      if (insertError) {
-        console.error(`[CreditService] Error creating profile: ${insertError.message}`);
-        // Se falhou por duplicate key (trigger já criou), tenta ler novamente
-        const { data: retryProfile } = await supabase
-          .from('profiles')
-          .select('credits')
-          .eq('id', userId)
-          .maybeSingle();
-
-        return retryProfile?.credits ?? 0;
-      }
-
-      return 5;
+      console.error(`[CreditService] Perfil não encontrado para userId: ${userId}. Trigger falhou em tempo de criacão?`);
+      return 0; // Return zero securely without crashing
     }
 
     return profile.credits ?? 0;
@@ -64,7 +47,7 @@ export class CreditService {
     
     console.log(`[CreditService] getUserCredits for userId: ${userId}`);
 
-    const credits = await this.ensureProfile(supabase, userId);
+    const credits = await this.getProfileSafe(supabase, userId);
     
     console.log(`[CreditService] Final credits for userId ${userId}: ${credits}`);
     return credits;
@@ -72,29 +55,28 @@ export class CreditService {
 
   /**
    * Consome N créditos para garantir a geração da imagem IA.
-   * Lança erro se o usuário não tiver fundos suficientes.
+   * Utiliza RPC para uma atualização atômica no banco,
+   * eliminando condições de corrida (Race Conditions).
    */
   static async consumeCredits(userId: string, amount: number = 1): Promise<boolean> {
     const supabase = createClient();
-    const currentCredits = await this.ensureProfile(supabase, userId);
     
-    console.log(`[CreditService] consumeCredits — userId: ${userId}, current: ${currentCredits}, requested: ${amount}`);
+    console.log(`[CreditService] Requesting atomic deduction of ${amount} credit(s).`);
 
-    if (currentCredits < amount) {
-      throw new Error(`Saldo de créditos insuficiente. Você possui ${currentCredits} e precisa de ${amount}.`);
-    }
+    const { data, error } = await supabase.rpc('decrement_credits', { amount });
 
-    console.log(`[CreditService] Consuming ${amount} credit(s) from user: ${userId}.`);
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ credits: currentCredits - amount })
-      .eq('id', userId);
-    
     if (error) {
-      throw new Error(`Erro ao descontar créditos: ${error.message}`);
+       console.error(`[CreditService] RPC Error: ${error.message}`);
+       throw new Error(`Erro interno ao processar créditos. Resposta do banco falhou.`);
     }
-    
+
+    // A RPC retorna JSON: { success: boolean, remaining_credits: number }
+    if (!data || !data.success) {
+       const balance = await this.getProfileSafe(supabase, userId);
+       throw new Error(`Saldo de créditos insuficiente. Você possui ${balance} e precisa de ${amount}.`);
+    }
+
+    console.log(`[CreditService] Atomic deduction successful. Remaining credits: ${data.remaining_credits}`);
     return true;
   }
 
@@ -103,7 +85,7 @@ export class CreditService {
    */
   static async addCredits(userId: string, amountToAdd: number): Promise<boolean> {
     const supabase = createClient();
-    const currentCredits = await this.ensureProfile(supabase, userId);
+    const currentCredits = await this.getProfileSafe(supabase, userId);
     
     console.log(`[CreditService] Adding ${amountToAdd} credit(s) to user: ${userId}. Current: ${currentCredits}`);
     

@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 import Navbar from "@/components/Navbar";
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -25,6 +26,7 @@ export default function RootLayout({
         <main className="pt-20 min-h-screen">
           {children}
         </main>
+        <Toaster theme="dark" position="top-center" />
       </body>
     </html>
   );

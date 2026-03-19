@@ -24,8 +24,8 @@ export class AIPipelineService {
     return new MockProvider();
   }
 
-  private static async executeWithFallback(method: 'generate' | 'enhance', prompt: string, imageBuffer?: Buffer): Promise<{ output: string | Uint8Array; providerName: string }> {
-    let provider = await this.getProvider();
+  private static async executeWithProvider(method: 'generate' | 'enhance', prompt: string, imageBuffer?: Buffer): Promise<{ output: string | Uint8Array; providerName: string }> {
+    const provider = await this.getProvider();
     try {
       let output: string | Uint8Array;
       if (method === 'generate') {
@@ -37,19 +37,7 @@ export class AIPipelineService {
       return { output, providerName: provider.providerName };
     } catch (e: unknown) {
       console.error(`[AIPipeline] Provider ${provider.providerName} failed:`, e);
-      if (provider.providerName === 'replicate') {
-        console.log(`[AIPipeline] Falling back to MockProvider`);
-        provider = new MockProvider();
-        let output: string | Uint8Array;
-        if (method === 'generate') {
-           output = await provider.generateImage(prompt);
-        } else {
-           output = await provider.enhanceImage(new Uint8Array(imageBuffer!), prompt);
-        }
-        console.log(`[AIPipeline] Fallback provider '${provider.providerName}' succeeded.`);
-        return { output, providerName: provider.providerName };
-      }
-      throw e;
+      throw new Error(`A Inteligência Artificial falhou tecnicamente ou estourou o timeout. Tente novamente mais tarde. (Seu crédito não foi consumido).`);
     }
   }
 
@@ -114,7 +102,7 @@ export class AIPipelineService {
       console.log(`[AIPipeline] Prompt Renderizado: ${finalPrompt}`);
 
       // 2. Integração com Provedores
-      const { output, providerName } = await this.executeWithFallback('generate', finalPrompt);
+      const { output, providerName } = await this.executeWithProvider('generate', finalPrompt);
       let resultBuffer = await this.processProviderOutput(output);
 
       // 3. Aplicar Watermark obrigatória (Compliance do Consumer Law BR)
@@ -147,7 +135,7 @@ export class AIPipelineService {
       console.log(`[AIPipeline] Enhancement Base Guidance: ${guidancePrompt.substring(0, 30)}...`);
 
       // 2. Integração com Provedores
-      const { output, providerName } = await this.executeWithFallback('enhance', guidancePrompt, params.imageBuffer);
+      const { output, providerName } = await this.executeWithProvider('enhance', guidancePrompt, params.imageBuffer);
       let enhancedBuffer = await this.processProviderOutput(output);
 
       // 3. Aplicar Watermark (Sempre final stage)

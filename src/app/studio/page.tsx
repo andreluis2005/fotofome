@@ -1,24 +1,67 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Sparkles, UploadCloud, RefreshCw } from "lucide-react";
 import ImageCompareSlider from "@/components/ImageCompareSlider";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useDropzone } from "react-dropzone";
 
 function StudioContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode = searchParams.get('mode') === 'generate' ? 'generate' : 'enhance';
   
   const [loading, setLoading] = useState(false);
+  const [loadingTextIndex, setLoadingTextIndex] = useState(0);
+  const loadingMessages = [
+    "Analisando o prato...",
+    "Aquecendo as frigideiras...",
+    "Ajustando o foco da lente...",
+    "Aplicando texturas super realistas..."
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      interval = setInterval(() => {
+        setLoadingTextIndex(prev => (prev + 1) % loadingMessages.length);
+      }, 4000);
+    } else {
+      setLoadingTextIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
   const [result, setResult] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<'enhance' | 'generate'>(initialMode);
   const [credits, setCredits] = useState<number | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
-  // Imagem base forçada mockada para efeito
+  // Imagem base forçada mockada para efeito visual no primeiro acesso
   const mockBeforeImg = "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop&blur=10";
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
+    },
+    maxFiles: 1
+  });
 
   // Buscar créditos reais do perfil
   useEffect(() => {
@@ -30,6 +73,7 @@ function StudioContent() {
           .from('profiles')
           .select('credits')
           .eq('id', user.id)
+          .limit(1)
           .maybeSingle();
         setCredits(profile?.credits ?? 0);
       }
@@ -52,7 +96,12 @@ function StudioContent() {
 
   const handleGenerate = async () => {
     if (!prompt) {
-      alert("Por favor, insira um prompt para a IA.");
+      toast.warning("Por favor, insira um prompt para a IA.");
+      return;
+    }
+
+    if (credits === 0) {
+      router.push("/pricing");
       return;
     }
 
@@ -65,8 +114,12 @@ function StudioContent() {
 
       if (mode === 'enhance') {
         endpoint = '/api/enhance';
-        const base64 = await getBase64FromUrl(mockBeforeImg);
-        body.imageBase64 = base64;
+        if (!selectedImage) {
+          toast.warning("Por favor, faça o upload da foto do seu prato primeiro.");
+          setLoading(false);
+          return;
+        }
+        body.imageBase64 = selectedImage; // Envia o Base64 nativo criado pela Dropzone
       } else {
         endpoint = '/api/generate';
       }
@@ -84,17 +137,18 @@ function StudioContent() {
       }
 
       setResult(data.image);
+      toast.success("Imagem gerada com sucesso!");
 
       // Atualiza créditos após geração bem-sucedida
       if (credits !== null) {
-        setCredits(prev => (prev !== null ? prev - 1 : 0));
+        setCredits(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
       }
     } catch (error: unknown) {
       console.error("AI Error:", error);
       if (error instanceof Error) {
-        alert(error.message);
+        toast.error(error.message);
       } else {
-        alert("Erro desconhecido");
+        toast.error("Erro desconhecido ao processar.");
       }
     } finally {
       setLoading(false);
@@ -136,15 +190,35 @@ function StudioContent() {
           {mode === 'enhance' && (
             <div>
               <h2 className="text-lg font-semibold mb-3">Upload Base da Foto</h2>
-              <div className="border-2 border-dashed border-gray-600 rounded-2xl h-48 flex items-center justify-center flex-col hover:border-orange-500/50 transition cursor-pointer bg-black/40">
-                <UploadCloud className="w-8 h-8 text-gray-500 mb-2" />
-                <p className="text-sm text-gray-400">Arraste a foto do prato ou <span className="text-orange-500">clique</span></p>
+              <div 
+                {...getRootProps()} 
+                className={`border-2 border-dashed rounded-2xl h-48 flex items-center justify-center flex-col transition cursor-pointer overflow-hidden relative ${
+                  isDragActive ? 'border-orange-500 bg-orange-500/10' : 'border-gray-600 hover:border-orange-500/50 bg-black/40'
+                }`}
+              >
+                <input {...getInputProps()} />
+                {selectedImage ? (
+                  <img src={selectedImage} alt="Upload preview" className="object-cover w-full h-full opacity-70 hover:opacity-100 transition" />
+                ) : (
+                  <>
+                    <UploadCloud className={`w-8 h-8 mb-2 ${isDragActive ? 'text-orange-500' : 'text-gray-500'}`} />
+                    <p className="text-sm text-gray-400 text-center px-4">
+                      {isDragActive ? (
+                        <span className="text-orange-500 font-medium">Solte a imagem aqui...</span>
+                      ) : (
+                        <>Arraste a foto do prato ou <span className="text-orange-500 font-bold">clique para buscar</span></>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
               <div className="mt-4 flex items-center space-x-4">
-                <div className="w-16 h-16 rounded overflow-hidden relative">
-                  <img src={mockBeforeImg} alt="Preview thumbnail" className="object-cover w-full h-full" />
+                <div className="w-16 h-16 rounded overflow-hidden relative flex-shrink-0 border border-white/5">
+                  <img src={selectedImage || mockBeforeImg} alt="Preview thumbnail" className="object-cover w-full h-full" />
                 </div>
-                <p className="text-xs text-gray-500 flex-1">A imagem carregada será enviada aos nossos provedores de re-iluminação para aprimoramento culinário.</p>
+                <p className="text-xs text-gray-500 flex-1">
+                  A imagem carregada será convertida seguramente para Base64 e enviada aos nossos provedores de re-iluminação.
+                </p>
               </div>
             </div>
           )}
@@ -160,14 +234,16 @@ function StudioContent() {
           </div>
 
           <button 
-            onClick={handleGenerate}
-            disabled={loading}
+            onClick={credits === 0 ? () => router.push('/pricing') : handleGenerate}
+            disabled={loading && credits !== 0}
             className={`w-full py-4 rounded-xl font-bold flex items-center justify-center transition-all ${
               loading ? 'bg-orange-600/50 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 shadow-[0_0_20px_rgba(234,88,12,0.4)]'
             }`}
           >
             {loading ? (
-              <><RefreshCw className="animate-spin mr-2 w-5 h-5"/> Processando IA...</>
+              <><RefreshCw className="animate-spin mr-2 w-5 h-5"/> {loadingMessages[loadingTextIndex]}</>
+            ) : credits === 0 ? (
+              <><Sparkles className="mr-2 w-5 h-5" /> Fazer Upgrade (0 Créditos)</>
             ) : (
               <><Sparkles className="mr-2 w-5 h-5" /> Transformar Mágica (Custa 1 Crédito)</>
             )}
@@ -180,12 +256,12 @@ function StudioContent() {
             {loading ? (
               <div className="flex flex-col items-center">
                 <RefreshCw className="w-10 h-10 animate-spin text-orange-500 mb-4" />
-                <p className="text-gray-400 animate-pulse">Injetando luz de estúdio culinário...</p>
+                <p className="text-gray-400 animate-pulse text-center px-4">{loadingMessages[loadingTextIndex]}</p>
               </div>
             ) : result ? (
               mode === 'enhance' ? (
                 <ImageCompareSlider 
-                  beforeImage={mockBeforeImg}
+                  beforeImage={selectedImage || mockBeforeImg}
                   afterImage={result}
                 />
               ) : (
