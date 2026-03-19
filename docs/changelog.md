@@ -21,5 +21,16 @@
 
 ### Security
 - Injetado `Layer 1: IP Rate Limiter` via Next.js Edge Middleware nas rotas de /login e /signup.
-- Injetado `Layer 2: User-ID Rate Limiter` nas APIs internas do servidor Next reduzindo chamadas da IA por cliente.
 - Introdução de **Structured Security Logging** preparado para Observability (Datadog/Sentry) silenciando Warnings nativos que travavam os logs tradicionais.
+
+---
+
+## [1.3.0] - 2026-03-19
+
+### Feature
+- **Direct-to-Storage Non-Breaking Uploads:** Desvio das cargas pesadas de Base64 para o Supabase Storage. Migração efetuada sob arquitetura "Safe Fallback" (Se o Storage cai, ele silenciosamente revigora para Base64 na UI).
+
+### Security
+- Criado Bucket `food-images` (Input Privado com RLS baseado no ID do Logista).
+- Bucket `generations` atualizado de Public/Read-Only para Inteiramente Privado com requisição de URLs geradas dinamicamente com validade de 24h.
+- Sanitização local de previews no DOM (`URL.createObjectURL()`) economizando dezenas de magabytes na memória RAM das abas do navegador na Studio Page.

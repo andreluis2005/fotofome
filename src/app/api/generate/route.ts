@@ -41,10 +41,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.error || 'Failed to generate image' }, { status: 500 });
     }
 
-    // Convertendo buffer para Base64 Data URI
-    const base64Image = `data:image/jpeg;base64,${result.data.toString('base64')}`;
+    // Store generated result in Supabase "generations" bucket
+    const fileName = `${userId}/${Date.now()}_generated.jpeg`;
+    const { error: uploadError } = await supabase.storage
+      .from('generations')
+      .upload(fileName, result.data, { contentType: 'image/jpeg' });
+      
+    if (uploadError) {
+      console.error("[API/generate] Storage save failed, yielding legacy fallback:", uploadError);
+      const base64Image = `data:image/jpeg;base64,${result.data.toString('base64')}`;
+      return NextResponse.json({ success: true, image: base64Image });
+    }
 
-    return NextResponse.json({ success: true, image: base64Image });
+    // Fetch Private Signed URL valid for 24 hours
+    const { data: signedData } = await supabase.storage
+      .from('generations')
+      .createSignedUrl(fileName, 60 * 60 * 24);
+
+    if (!signedData?.signedUrl) {
+      const base64Image = `data:image/jpeg;base64,${result.data.toString('base64')}`;
+      return NextResponse.json({ success: true, image: base64Image });
+    }
+
+    return NextResponse.json({ success: true, image: signedData.signedUrl });
   } catch (error: unknown) {
     console.error('[API/generate] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';

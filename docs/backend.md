@@ -26,3 +26,8 @@ Ao usar o `CreditService.consumeCredits()`, o backend joga um `throw new Error(.
 A biblioteca `src/lib/rate-limit.ts` centraliza as lógicas das instâncias do `@upstash/ratelimit`.
 O uso foi separado em dois tokens `getRateLimit('ip')` vs `getRateLimit('user')` para garantir restrições granulares. 
 Todos os eventos bloqueados são exportados via o helper `logSecurityEvent` desenhado nativamente para integração com ferramentas de APM e SIEM em invés de poluir os logs padrão.
+
+## Image Payloads (Dual-Input Compatibility)
+Para garantir estabilidade durante migrações e compatibilidade com clientes desatualizados, a API de Rest do Next.js aceita polimorficamente mídias através de:
+1. `image_url` (Preferencial, via Supabase Signed URL). O backend faz fetch em ArrayBuffer.
+2. `imageBase64` (Legacy/Fallback). O Node converte diretamente via Regex.
