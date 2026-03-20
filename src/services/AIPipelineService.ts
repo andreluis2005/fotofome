@@ -38,7 +38,7 @@ export class AIPipelineService {
   ): Promise<{ output: string | Uint8Array; providerName: string }> {
     const provider = await this.getProvider();
     
-    const timeout = 35000; // 35s – safe within Vercel 60s serverless limit
+    const timeout = 45000; // 45s – increased for structural fidelity models
     const execute = async () => {
       if (method === 'generate') return await provider.generateImage(prompt);
       if (method === 'enhance') return await provider.enhanceImage(imageSource as any, prompt);
@@ -162,8 +162,8 @@ export class AIPipelineService {
     try {
       console.log(`[AIPipeline] Initiating image enhancement for User: ${params.userId}`);
       
-      // 1. Controlled Internal Prompt (Quality Focused)
-      const controlledPrompt = "Ultra-realistic professional food photography, commercial studio lighting, high resolution, delicious appetite appeal, 8k, sharp focus.";
+      // 1. Source of Truth Prompt (Loaded from File)
+      const controlledPrompt = this.loadPromptTemplate('food-enhance.prompt.md');
 
       // 2. Integração com Provedores (Usando URL se disponível para estabilidade)
       const source = params.imageUrl || params.imageBuffer;

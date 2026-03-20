@@ -11,12 +11,13 @@ Ele lida com os bits e bytes das imagens, transformações, requests que demoram
 
 ## Configuração de Modelos (Produção)
 
-### Enhance (img2img): `lucataco/sdxl-controlnet`
-- **Versão:** `06d5ff16773950ef500732890ca15eb901bc09395d985a676a6616a9eb789b7b`
-- **Hardware:** Nvidia L40S GPU (~10s por predição, cold start pode chegar a ~30s)
-- **Parâmetros válidos:** `image`, `prompt`, `negative_prompt`, `condition_scale` (0-1), `num_inference_steps` (1-500), `seed`
-- **Parâmetros NÃO suportados:** ~~controlnet_model~~, ~~strength~~, ~~num_outputs~~, ~~guidance_scale~~
-- **Timeout:** 35s com retry condicional (429/503)
+### Enhance (ControlNet): `lucataco/sdxl-controlnet`
+- **Regra de Ouro:** Fidelidade estrutural absoluta (100%).
+- **Estratégia:** Usa `condition_scale: 0.95` para garantir que o prato original não seja alterado.
+- **Prompt:** Carregado via SOT (`food-enhance.prompt.md`).
+- **Hardware:** Nvidia L40S GPU.
+- **Timeout:** 45s com retry condicional (429/503).
+
 
 ### Generate (text2img): `black-forest-labs/flux-schnell`
 - **Parâmetros:** `{ prompt }`

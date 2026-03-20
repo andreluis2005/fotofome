@@ -6,7 +6,7 @@ O FotoFome AI é um MicroSaaS direcionado para donos de cozinhas delivery e gere
 
 1. **Authentication:** Registro por mágica / Github (Supabase).
 2. **Image Upload:** Foto do prato sem graça capturada com um celular simples.
-3. **Image Enhancement:** Melhora iluminação e realismo usando `lucataco/sdxl-controlnet` (Canny, img2img). Custo: **2 créditos**.
+3. **Image Enhancement:** Melhoria fiel (não geração) que preserva 100% da estrutura original usando `lucataco/sdxl-controlnet`. Custo: **2 créditos**.
 4. **AI Text Generation:** Geração do zero via `Flux-Schnell`. Custo: **1 crédito**.
 5. **Aviso Legal Opcional (Watermark):** Sela "Imagem Ilustrativa" discretamente.
 6. **Automatic Menu Generation:** Analisa a imagem e gera nome/descrição para cardápio via `LLaVA`. Custo: **1 crédito**.

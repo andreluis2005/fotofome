@@ -48,14 +48,14 @@ export class ReplicateProvider implements IAIProvider {
     
     try {
       const output = await this.replicate.run(
-        "lucataco/sdxl-controlnet:06d5ff16773950ef500732890ca15eb901bc09395d985a676a6616a9eb789b7b",
+        "lucataco/sdxl-controlnet",
         {
           input: {
             image: imageUrl,
             prompt: prompt,
-            negative_prompt: "low quality, bad quality, blurry, amateur, poorly lit, ugly food",
-            condition_scale: 0.8,
-            num_inference_steps: 50,
+            negative_prompt: "fake food, extra ingredients, distorted, unrealistic, cartoon, oversaturated, blurry",
+            condition_scale: 0.95,
+            num_inference_steps: 30,
           }
         }
       );
@@ -67,7 +67,7 @@ export class ReplicateProvider implements IAIProvider {
       return this.processOutput(output);
     } catch (error: any) {
       console.error(`[AI_ENHANCE_ERROR] Model: lucataco/sdxl-controlnet | Input URL: ${imageUrl} | Error:`, error);
-      throw error; // Let AIPipelineService handle the fallback/no-credit logic
+      throw error;
     }
   }
 

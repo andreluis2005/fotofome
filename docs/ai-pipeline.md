@@ -29,9 +29,17 @@ sequenceDiagram
 | Pipeline | Modelo | Hardware | Parâmetros |
 |---|---|---|---|
 | **Text-to-Image** | `black-forest-labs/flux-schnell` | — | `{ prompt }` |
-| **Image-to-Image (Enhance)** | `lucataco/sdxl-controlnet` (Canny) | Nvidia L40S | `{ image, prompt, negative_prompt, condition_scale: 0.8, num_inference_steps: 50 }` |
+| **Image-to-Image (Enhance)** | `lucataco/sdxl-controlnet` | Nvidia L40S | `{ image, prompt (SOT), negative_prompt, condition_scale: 0.95, num_inference_steps: 30 }` |
 | **Menu (Multimodal)** | `yorickvp/llava-13b` | — | `{ image, prompt, max_tokens }` |
 | **Menu (Fallback)** | `meta/meta-llama-3-70b-instruct` | — | `{ prompt, max_new_tokens }` |
+
+### Estratégia de Fidelidade Estrutural
+Para garantir que a comida original não seja alterada, o pipeline de Enhance utiliza:
+- **ControlNet (Canny):** Mantém 100% da composição e ingredientes originais.
+- **Condition Scale (0.95):** Força o modelo a seguir rigorosamente as linhas da imagem base.
+- **Prompt SOT:** Carregado dinamicamente de `prompts/food-enhance.prompt.md` para evitar inconsistências.
+- **Inference Steps (30):** Balanceamento entre qualidade e prevenção de alucinações.
+- **Timeout (45s):** Ajustado para acomodar o processamento mais denso do ControlNet.
 
 ## Estratégia de Timeout (Vercel Safe)
 

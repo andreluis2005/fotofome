@@ -1,5 +1,21 @@
-Ultra-realistic professional food photography, commercial studio lighting, high resolution, delicious appetite appeal, 8k, sharp focus.
-Improve lighting, increase texture detail, enhance natural colors, emphasize ingredients, simulate shallow depth of field, increase contrast.
-Make the food look extremely appetizing while strictly keeping the original composition and plating.
+Enhance this food image with professional food photography quality.
 
-> **Nota de Pipeline:** O Enhance Mode utiliza este prompt como referência de estilo. No `AIPipelineService.ts`, o prompt controlado é injetado diretamente (sem leitura deste arquivo) para garantir estabilidade máxima. Alterações aqui devem ser sincronizadas manualmente com o `controlledPrompt` na linha 166 do `AIPipelineService.ts`.
+IMPORTANT:
+- DO NOT change the structure of the food
+- DO NOT add or remove ingredients
+- DO NOT modify composition or proportions
+- PRESERVE 100% of the original layout
+
+Only improve:
+- lighting (soft studio lighting)
+- sharpness and texture
+- color vibrance (natural, not artificial)
+- background cleanliness (subtle only)
+
+The result must look like the SAME food, just professionally photographed.
+
+Style:
+- realistic
+- commercial food photography
+- natural colors
+- no AI artifacts

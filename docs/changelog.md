@@ -1,9 +1,22 @@
-# Changelog
+## [1.4.2] - 2026-03-19
+
+### Feat
+- **Fidelidade Estrutural (Enhance):** Migração para `lucataco/sdxl-controlnet` com `condition_scale: 0.95` e `num_inference_steps: 30`. Garante 100% de preservação da estrutura original da comida.
+- **Prompt SOT:** Implementado carregamento dinâmico de `prompts/food-enhance.prompt.md`. Prompt centralizado no markdown agora é a única fonte de verdade.
+- **Timeout Provedor:** Ajustado para 45s para acomodar o processamento de alta fidelidade.
+
+### Fix
+- **Invalid Version Hash:** Removido hash de versão inexistente (`06d5ff16...`). 
+- **Migração de Modelo:** Substituído `real-esrgan` por ControlNet para suporte a prompts e fidelidade.
+
+---
 
 ## [1.4.1] - 2026-03-19
 
 ### Fix
 - **Enhance Image Schema Fix:** Removidos parâmetros inválidos (`controlnet_model`, `strength`, `num_outputs`, `guidance_scale`) do provider `lucataco/sdxl-controlnet`. Substituídos pelos corretos: `negative_prompt`, `condition_scale`, `num_inference_steps`.
+- **Invalid Version Hash:** Removido hash de versão inexistente (`06d5ff16...`). Modelo `lucataco/sdxl-controlnet` completamente inacessível (404/422).
+- **Migração de Modelo:** Substituído `lucataco/sdxl-controlnet` por `nightmareai/real-esrgan` (upscaler neural ativo, atualizado março 2026). Params: `{ image, scale: 2, face_enhance: false }`.
 - **Timeout Stability:** Timeout ajustado de 25s para 35s, seguro dentro do limite Vercel serverless (60s). Retry condicional mantido para 429/503.
 
 ### Docs

@@ -16,10 +16,13 @@ O fluxo é o seguinte:
 ## Anti-Abuse Shield (Rate Limiting)
 Para evitar o consumo massivo de infraestrutura de IA e abusos via formulários (Scraping ou bruteforce), utilizamos  uma arquitetura Multi-Layer baseada em **Upstash Redis**:
 - **Layer 1 (Edge Middleware):** Controla volumetria bruta de origem IP nas rotas de Autenticação (`/login`, `/signup`). Total: 5 req/min/IP.
-- **Layer 2 (Backend APIs):** Em pontos com custo financeiro pesado (`/api/generate` etc), aplicamos throttling por **ID de Usuário** logado. Total: 3 req/min/User.
+- **Layer 2 (Backend APIs): Escola de TI):** Em pontos com custo financeiro pesado (`/api/generate` etc), aplicamos throttling por **ID de Usuário** logado. Total: 3 req/min/User.
 
 ## AI Provider Timeout Strategy (Vercel Safe)
 Todas as chamadas ao Replicate seguem uma estratégia de timeout compatível com Vercel serverless (`maxDuration: 60`):
-- **Timeout por chamada:** 35s — acomoda cold starts da GPU L40S sem estourar o limite
-- **Retry condicional:** 1 retry apenas para erros 429 (rate limit) e 503 (service unavailable), somente se houver orçamento de tempo restante
-- **Proteção financeira:** Créditos descontados exclusivamente após confirmação de delivery do buffer pelo provider
+- **Timeout individual:** 45s (ajustado para processamento denso do ControlNet).
+- **Orçamento total:** Monitorado para não exceder os 60s do Vercel serverless.
+- **Retry Logic:** 1x tentativa automática apenas para erros transitórios (429/503).
+
+### Gestão de Prompts (Source of Truth)
+O sistema utiliza arquivos `.prompt.md` no diretório `/prompts` como única fonte de verdade. O `AIPipelineService` carrega esses arquivos dinamicamente, garantindo que alterações nos agentes ou documentação reflitam instantaneamente no comportamento da IA sem necessidade de deploys de código para ajustes finos de prompt.

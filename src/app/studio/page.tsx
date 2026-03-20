@@ -278,7 +278,7 @@ function StudioContent() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-28"
-              placeholder={mode === 'enhance' ? "Ex: Reforce o cheddar derretido e crie fumaça no Hambúrguer." : "Ex: Um hambúrguer artesanal suculento com bacon, foto comercial 4k de estúdio."}
+              placeholder={mode === 'enhance' ? "Ex: melhorar iluminação, nitidez e cores naturais (não descreva mudanças no prato)" : "Ex: Um hambúrguer artesanal suculento com bacon, foto comercial 4k de estúdio."}
             ></textarea>
           </div>
 
