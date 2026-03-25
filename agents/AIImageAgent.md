@@ -11,13 +11,10 @@ Ele lida com os bits e bytes das imagens, transformações, requests que demoram
 
 ## Configuração de Modelos (Produção)
 
-### Enhance (ControlNet): `lucataco/sdxl-controlnet`
-- **Regra de Ouro:** Fidelidade estrutural absoluta (100%).
-- **Estratégia:** Usa `condition_scale: 0.95` para garantir que o prato original não seja alterado.
-- **Prompt:** Carregado via SOT (`food-enhance.prompt.md`).
-- **Hardware:** Nvidia L40S GPU.
-- **Timeout:** 45s com retry condicional (429/503).
-
+### Enhance: `stability-ai/stable-diffusion-img2img`
+- **Regra de Ouro:** Melhora fotográfica realista sem distorção.
+- **Parâmetros:** `strength: 0.35`, `guidance_scale: 7`, `num_inference_steps: 25`.
+- **Tratamento:** Garante extração de buffer único mesmo em respostas tipo array.
 
 ### Generate (text2img): `black-forest-labs/flux-schnell`
 - **Parâmetros:** `{ prompt }`

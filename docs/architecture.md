@@ -26,3 +26,8 @@ Todas as chamadas ao Replicate seguem uma estratégia de timeout compatível com
 
 ### Gestão de Prompts (Source of Truth)
 O sistema utiliza arquivos `.prompt.md` no diretório `/prompts` como única fonte de verdade. O `AIPipelineService` carrega esses arquivos dinamicamente, garantindo que alterações nos agentes ou documentação reflitam instantaneamente no comportamento da IA sem necessidade de deploys de código para ajustes finos de prompt.
+
+### Estratégia de Resiliência (Fallback)
+O pipeline de Enhance utiliza o modelo consolidado `stability-ai/stable-diffusion-img2img`. A resiliência é garantida pelo uso de parâmetros conservadores e tratamento robusto de outputs (array handling), minimizando falhas de schema do provedor.
+
+

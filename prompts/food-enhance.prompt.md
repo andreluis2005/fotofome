@@ -19,3 +19,14 @@ Style:
 - commercial food photography
 - natural colors
 - no AI artifacts
+
+Enhancement strength must be subtle and realistic.
+
+Do not over-enhance.
+Do not create artificial textures.
+Do not oversaturate colors.
+Do not create HDR-like effects.
+
+Prefer slight improvement over unrealistic perfection.
+
+The image must look like a real photo taken with a better camera, not AI-generated.

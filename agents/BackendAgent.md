@@ -9,3 +9,5 @@ Lida majoritariamente com `src/app/api/`, integrações de validação de reques
 - Enforçar regras do `RateLimitMiddleware`.
 - Gerenciar as rotas do pipeline da IA (`POST /api/generate`, `POST /api/enhance`).
 - Manter abstração perfeita: O BackendAgent consome abstrações expostas por `src/services/ai/pipeline` preenchida pelo AIImageAgent.
+- **Resiliência do Pipeline:** O Backend (via `ReplicateProvider`) gerencia a estabilidade do Enhance utilizando o modelo `stable-diffusion-img2img` e tratamento de outputs robusto.
+

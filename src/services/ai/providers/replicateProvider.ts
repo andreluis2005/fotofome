@@ -44,29 +44,33 @@ export class ReplicateProvider implements IAIProvider {
   }
 
   async enhanceImage(imageUrl: string, prompt: string): Promise<string | Uint8Array> {
-    console.log(`[ReplicateProvider] Enhancing image from URL: ${imageUrl.substring(0, 50)}...`);
-    
+    console.log("[ENHANCE_USING_IMG2IMG]");
+
+    const input = {
+      image: imageUrl,
+      prompt: prompt,
+      strength: 0.35,
+      guidance_scale: 7,
+      num_inference_steps: 25
+    };
+
     try {
-      const output = await this.replicate.run(
-        "lucataco/sdxl-controlnet",
-        {
-          input: {
-            image: imageUrl,
-            prompt: prompt,
-            negative_prompt: "fake food, extra ingredients, distorted, unrealistic, cartoon, oversaturated, blurry",
-            condition_scale: 0.95,
-            num_inference_steps: 30,
-          }
-        }
+      const output: any = await this.replicate.run(
+        "stability-ai/stable-diffusion-img2img",
+        { input }
       );
 
       if (!output) {
-        throw new Error("Replicate returned empty output for enhanceImage");
+        throw new Error("Empty output from Replicate (img2img)");
       }
 
-      return this.processOutput(output);
+      // 1. Garantir tratamento do retorno do Replicate: Se output for array, retornar output[0]
+      const finalOutput = Array.isArray(output) ? output[0] : output;
+
+      console.log("[ENHANCE_SUCCESS]");
+      return this.processOutput(finalOutput);
     } catch (error: any) {
-      console.error(`[AI_ENHANCE_ERROR] Model: lucataco/sdxl-controlnet | Input URL: ${imageUrl} | Error:`, error);
+      console.error(`[ENHANCE_TOTAL_FAILURE] Error:`, error.message || error);
       throw error;
     }
   }

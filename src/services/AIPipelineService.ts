@@ -38,7 +38,7 @@ export class AIPipelineService {
   ): Promise<{ output: string | Uint8Array; providerName: string }> {
     const provider = await this.getProvider();
     
-    const timeout = 45000; // 45s – increased for structural fidelity models
+    const timeout = 55000; // 55s – allow enough time for Primary + Fallback
     const execute = async () => {
       if (method === 'generate') return await provider.generateImage(prompt);
       if (method === 'enhance') return await provider.enhanceImage(imageSource as any, prompt);
@@ -51,11 +51,14 @@ export class AIPipelineService {
       try {
         return await Promise.race([
           execute(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), timeout))
+          new Promise((_, reject) => setTimeout(() => {
+            console.warn(`[TIMEOUT_TRIGGERED] Method '${method}' timed out after ${timeout}ms.`);
+            reject(new Error('TIMEOUT'));
+          }, timeout))
         ]);
       } catch (e: any) {
         if (retries > 0 && (e.message === 'TIMEOUT' || e.status === 429 || e.status === 503)) {
-          console.log(`[AIPipeline] Retrying method '${method}'...`);
+          console.log(`[AIPipeline] Retrying method '${method}' (${retries} retries left)...`);
           return runWithRetry(retries - 1);
         }
         throw e;

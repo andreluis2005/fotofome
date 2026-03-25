@@ -1,3 +1,10 @@
+## [1.4.3] - 2026-03-19
+
+### Refactor
+- **Calibração de Realismo (Enhance):** Ajuste de `condition_scale` (0.95 → 0.9) e `steps` (30 → 25) para eliminar aparência artificial e texturas plásticas.
+- **Naturalness Prompt:** Adição de sufixo anti-artificialidade no `food-enhance.prompt.md` (SOT).
+- **QA Metrics:** Nova validação de naturalidade visual no `QAAgent`.
+
 ## [1.4.2] - 2026-03-19
 
 ### Feat
