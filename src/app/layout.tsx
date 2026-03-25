@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Navbar from "@/components/Navbar";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -8,9 +10,6 @@ export const metadata: Metadata = {
   title: "FotoFome AI | Revolucione seus pratos no Delivery",
   description: "Traga vida a suas composições. A Inteligência Artificial da FotoFome transforma fotos simples em renders comercias estonteantes para o Ifood e Rappi.",
 };
-
-import Navbar from "@/components/Navbar";
-import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,

@@ -8,9 +8,9 @@ export interface UserCredits {
 /**
  * CreditService
  * Abstração para isolar todas as operações relativas aos créditos
- * disponíveis pela compra de "Packages".
+ * disponíveis pela compra de "Packages" e checagem de Assinaturas (Tiers).
  * 
- * Tabela de referência: public.profiles (campo 'credits')
+ * Tabela de referência: public.profiles (campos 'credits' e 'tier')
  */
 export class CreditService {
   /**
@@ -51,6 +51,29 @@ export class CreditService {
     
     console.log(`[CreditService] Final credits for userId ${userId}: ${credits}`);
     return credits;
+  }
+
+  /**
+   * Resgata o nível de assinatura (Tier) do usuário (free, pro, plus)
+   */
+  static async getUserTier(userId: string): Promise<'free' | 'pro' | 'plus'> {
+    const supabase = createClient();
+    
+    console.log(`[CreditService] fetching Tier for userId: ${userId}`);
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('tier')
+      .eq('id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !profile) {
+      console.error(`[CreditService] Cannot fetch tier, defaulting to free.`);
+      return 'free';
+    }
+
+    return profile.tier as 'free' | 'pro' | 'plus';
   }
 
   /**
