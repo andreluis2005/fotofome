@@ -71,7 +71,12 @@ export class AIPipelineService {
       return { output, providerName: provider.providerName };
     } catch (e: unknown) {
       console.error(`[AIPipeline] Provider ${provider.providerName} failed:`, JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
-      throw new Error(`A Inteligência Artificial falhou ou demorou demais. Tente novamente. (Créditos preservadores).`);
+      
+      let errorMsg = 'Demorou muito ou falhou';
+      if (e instanceof Error) errorMsg = e.message;
+      else if (typeof e === 'object' && e !== null && 'message' in e) errorMsg = String((e as any).message);
+      
+      throw new Error(`Falha na IA: ${errorMsg} (Créditos preservados).`);
     }
   }
 
