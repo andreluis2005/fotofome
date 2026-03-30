@@ -104,23 +104,26 @@ export class CreditService {
   }
 
   /**
-   * Adiciona créditos (geralmente invocado via webhooks quando compra de um pacote)
+   * Adiciona créditos atomicamente via RPC (invocado via webhooks de compra).
+   * Usa a mesma estratégia do consumeCredits para prevenir race conditions.
    */
   static async addCredits(userId: string, amountToAdd: number): Promise<boolean> {
     const supabase = createClient();
-    const currentCredits = await this.getProfileSafe(supabase, userId);
     
-    console.log(`[CreditService] Adding ${amountToAdd} credit(s) to user: ${userId}. Current: ${currentCredits}`);
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ credits: currentCredits + amountToAdd })
-      .eq('id', userId);
-    
+    console.log(`[CreditService] Adding ${amountToAdd} credit(s) to user: ${userId} via RPC.`);
+
+    const { data, error } = await supabase.rpc('increment_credits', { amount: amountToAdd });
+
     if (error) {
+      console.error(`[CreditService] RPC increment_credits Error: ${error.message}`);
       throw new Error(`Erro ao adicionar créditos: ${error.message}`);
     }
-    
+
+    if (!data || !data.success) {
+      throw new Error('Falha ao adicionar créditos. Perfil não encontrado.');
+    }
+
+    console.log(`[CreditService] Credits added. New balance: ${data.remaining_credits}`);
     return true;
   }
 }

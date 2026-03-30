@@ -15,6 +15,7 @@ function SocialMediaContent() {
   
   const [activeTab, setActiveTab] = useState<SocialNetwork>('instagram');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     // Validar Auth e Tier
@@ -26,8 +27,10 @@ function SocialMediaContent() {
         return;
       }
       setIsAuthenticated(true);
-      // Validando Tier Pro/Plus (gatekeeper)
-      const { data } = await supabase.from('profiles').select('tier').eq('id', user.id).single();
+      // Validando Tier Pro/Plus (gatekeeper) e buscando geolocalização
+      const { data } = await supabase.from('profiles').select('tier, city, neighborhood, niche').eq('id', user.id).single();
+      if (data) setProfile(data);
+      
       if (data?.tier === 'free') {
         router.push('/pricing');
         toast.warning("Kit Social Media é exclusivo para assinantes Premium.");
@@ -80,30 +83,30 @@ function SocialMediaContent() {
       {/* Layout Grids */}
       {activeTab === 'instagram' && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <PreviewCard network="instagram" format="post" title="Feed Vertical (4:5)" ratioClass="aspect-[4/5]" imageUrl={imageUrl} />
-          <PreviewCard network="instagram" format="post" title="Feed Quadrado (1:1)" ratioClass="aspect-square" imageUrl={imageUrl} />
-          <PreviewCard network="instagram" format="story" title="Stories / Reels (9:16)" ratioClass="aspect-[9/16]" imageUrl={imageUrl} />
+          <PreviewCard network="instagram" format="post" title="Feed Vertical (4:5)" ratioClass="aspect-[4/5]" imageUrl={imageUrl} userProfile={profile} />
+          <PreviewCard network="instagram" format="post" title="Feed Quadrado (1:1)" ratioClass="aspect-square" imageUrl={imageUrl} userProfile={profile} />
+          <PreviewCard network="instagram" format="story" title="Stories / Reels (9:16)" ratioClass="aspect-[9/16]" imageUrl={imageUrl} userProfile={profile} />
         </div>
       )}
 
       {activeTab === 'facebook' && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <PreviewCard network="facebook" format="post" title="Post Quadrado (1:1)" ratioClass="aspect-square" imageUrl={imageUrl} />
-          <PreviewCard network="facebook" format="story" title="Capa de Página (16:9)" ratioClass="aspect-video" imageUrl={imageUrl} />
-          <PreviewCard network="facebook" format="story" title="Stories (9:16)" ratioClass="aspect-[9/16]" imageUrl={imageUrl} />
+          <PreviewCard network="facebook" format="post" title="Post Quadrado (1:1)" ratioClass="aspect-square" imageUrl={imageUrl} userProfile={profile} />
+          <PreviewCard network="facebook" format="story" title="Capa de Página (16:9)" ratioClass="aspect-video" imageUrl={imageUrl} userProfile={profile} />
+          <PreviewCard network="facebook" format="story" title="Stories (9:16)" ratioClass="aspect-[9/16]" imageUrl={imageUrl} userProfile={profile} />
         </div>
       )}
 
       {activeTab === 'tiktok' && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
-          <PreviewCard network="tiktok" format="story" title="Vídeo / Slide Vertical (9:16)" ratioClass="aspect-[9/16]" imageUrl={imageUrl} />
+          <PreviewCard network="tiktok" format="story" title="Vídeo / Slide Vertical (9:16)" ratioClass="aspect-[9/16]" imageUrl={imageUrl} userProfile={profile} />
         </div>
       )}
 
       {activeTab === 'ifood' && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <PreviewCard network="ifood" format="catalog" title="Cátalogo Lupa (1:1)" ratioClass="aspect-square" imageUrl={imageUrl} />
-          <PreviewCard network="ifood" format="cover" title="Banner iFood (16:9)" ratioClass="aspect-video" imageUrl={imageUrl} />
+          <PreviewCard network="ifood" format="catalog" title="Cátalogo Lupa (1:1)" ratioClass="aspect-square" imageUrl={imageUrl} userProfile={profile} />
+          <PreviewCard network="ifood" format="cover" title="Banner iFood (16:9)" ratioClass="aspect-video" imageUrl={imageUrl} userProfile={profile} />
         </div>
       )}
 
@@ -129,13 +132,17 @@ function TabButton({ icon, label, id, activeTab, onPress }: any) {
   );
 }
 
-function PreviewCard({ network, format, title, ratioClass, imageUrl }: { network: SocialNetwork, format: SocialFormat, title: string, ratioClass: string, imageUrl: string }) {
+function PreviewCard({ network, format, title, ratioClass, imageUrl, userProfile }: { network: SocialNetwork, format: SocialFormat, title: string, ratioClass: string, imageUrl: string, userProfile: any }) {
   const [copyText, setCopyText] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    SocialMediaCopyService.generateCopy(network, format).then(setCopyText);
-  }, [network, format]);
+    SocialMediaCopyService.generateCopy(network, format, 'esta delícia', {
+      city: userProfile?.city,
+      neighborhood: userProfile?.neighborhood,
+      niche: userProfile?.niche
+    }).then(setCopyText);
+  }, [network, format, userProfile]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(copyText);

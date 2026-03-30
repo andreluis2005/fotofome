@@ -96,19 +96,6 @@ function StudioContent() {
     fetchCredits();
   }, []);
 
-  // Helpers to fetch the image as base64 so we can send it to enhance
-  const getBase64FromUrl = async (url: string): Promise<string> => {
-    const data = await fetch(url);
-    const blob = await data.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(blob); 
-      reader.onloadend = () => {
-        resolve(reader.result as string);
-      }
-    });
-  }
-
   const handleGenerate = async () => {
     if (!prompt) {
       toast.warning("Por favor, insira um prompt para a IA.");

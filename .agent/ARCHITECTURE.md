@@ -275,6 +275,20 @@ For details, see [scripts/README.md](scripts/README.md)
 
 ---
 
+## 🧠 Infraestrutura Base de IA (Pipeline Mestre)
+
+O FotoFome depende de 3 motores principais via ReplicateProvider configurados rigorosamente:
+
+| Função | Modelo (Hash) | Configuração Foco |
+|--------|---------------|-------------------|
+| **Text-to-Image** | `black-forest-labs/flux-schnell` | Rapidez comercial |
+| **Image-to-Image** | `stability-ai/sdxl:39ed...` | `prompt_strength: 0.35` (Preserva Fidelidade Geométrica) |
+| **Vision/Menu** | `yorickvp/llava-13b:b5f6...` | `max_tokens: 500` |
+
+> 🔴 **Regra de Ouro (IA):** Modelos `img2img` devem usar **Hashes Fixos** providos pelas empresas base (ex: *stability-ai*). Nunca usar labels de comunidade abstratas sem hash que sofrem depreciação (Resultando em Bad Gateway ou 404).
+
+---
+
 ## 🔗 Quick Reference
 
 | Need     | Agent                 | Skills                                |

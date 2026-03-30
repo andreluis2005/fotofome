@@ -22,6 +22,9 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [city, setCity] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [niche, setNiche] = useState("Hamburgueria");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +42,9 @@ export default function SignupPage() {
         options: {
           data: {
             full_name: fullName,
+            city,
+            neighborhood,
+            niche
           }
         }
       });
@@ -57,11 +63,15 @@ export default function SignupPage() {
     } catch (err: unknown) {
       console.error("Signup error:", err);
       if (err instanceof Error && err.message.includes("Failed to fetch")) {
-        setError("Authentication service unavailable");
+        setError("Serviço de autenticação indisponível. Tente novamente mais tarde.");
+      } else if (err instanceof Error && err.message.includes("already registered")) {
+        setError("Este email já está cadastrado. Tente fazer login ou use outro email.");
+      } else if (err instanceof Error && err.message.includes("password")) {
+        setError("A senha deve ter pelo menos 6 caracteres.");  
       } else if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Account could not be created");
+        setError("Não foi possível criar sua conta. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -113,6 +123,52 @@ export default function SignupPage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Cidade</label>
+              <input 
+                type="text" 
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                required
+                placeholder="Ex: São Paulo"
+                className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all font-medium"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Bairro</label>
+                <input 
+                  type="text" 
+                  value={neighborhood}
+                  onChange={(e) => setNeighborhood(e.target.value)}
+                  required
+                  placeholder="Ex: Jardins"
+                  className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all font-medium"
+                />
+              </div>
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Especialidade</label>
+                <select 
+                  value={niche}
+                  onChange={(e) => setNiche(e.target.value)}
+                  className="w-full px-4 py-[1.15rem] bg-[#1e293b] border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all appearance-none font-medium"
+                >
+                  <option value="Hamburgueria">Hamburgueria</option>
+                  <option value="Pizzaria">Pizzaria</option>
+                  <option value="Japonesa">Japonesa</option>
+                  <option value="Italiana">Italiana</option>
+                  <option value="Churrascaria">Churrascaria</option>
+                  <option value="Açaí/Sorvetes">Açaí/Sorvetes</option>
+                  <option value="Confeitaria">Confeitaria</option>
+                  <option value="Outros">Outros</option>
+                </select>
+                <div className="absolute right-4 top-[3.2rem] pointer-events-none text-gray-500">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                </div>
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">E-mail</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within:text-orange-500 transition-colors">
@@ -124,7 +180,7 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="exemplo@restaurante.com"
-                  className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                  className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all font-medium"
                 />
               </div>
             </div>

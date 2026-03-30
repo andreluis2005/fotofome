@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { LogOut, User as UserIcon, LayoutDashboard } from "lucide-react";
+import { LogOut, User as UserIcon, LayoutDashboard, Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createClient();
   const router = useRouter();
 
@@ -33,9 +34,12 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setMobileOpen(false);
     router.push("/");
     router.refresh();
   };
+
+  const closeMobile = () => setMobileOpen(false);
 
   return (
     <nav className="fixed top-0 w-full z-50 glass border-b border-white/5">
@@ -52,6 +56,7 @@ export default function Navbar() {
             </Link>
           </div>
 
+          {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <Link href="/pricing" className="text-sm font-medium text-gray-400 hover:text-white transition">Preços</Link>
             
@@ -89,9 +94,68 @@ export default function Navbar() {
             )}
           </div>
           
-          {/* Mobile menu logic could go here, keeping it clean for now */}
+          {/* Mobile Hamburger Button */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition"
+            aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu Panel */}
+      {mobileOpen && (
+        <div className="md:hidden glass border-t border-white/5 animate-in slide-in-from-top-2 duration-200">
+          <div className="px-4 py-6 space-y-4">
+            <Link 
+              href="/pricing" 
+              onClick={closeMobile}
+              className="block text-sm font-medium text-gray-400 hover:text-white transition py-2"
+            >
+              Preços
+            </Link>
+
+            {!loading && (
+              <>
+                {user ? (
+                  <>
+                    <Link 
+                      href="/dashboard" 
+                      onClick={closeMobile}
+                      className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white transition py-2"
+                    >
+                      <LayoutDashboard className="w-4 h-4" /> Painel
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 transition py-2 w-full"
+                    >
+                      <LogOut className="w-4 h-4" /> Sair
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-3 pt-2">
+                    <Link 
+                      href="/login" 
+                      onClick={closeMobile}
+                      className="text-sm font-medium text-gray-300 hover:text-white transition py-2"
+                    >
+                      Entrar
+                    </Link>
+                    <Link href="/signup" onClick={closeMobile}>
+                      <button className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-sm transition shadow-lg shadow-orange-600/20">
+                        Começar agora
+                      </button>
+                    </Link>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

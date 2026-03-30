@@ -41,23 +41,26 @@ export class AIPipelineService {
     const timeout = 55000; // 55s – allow enough time for Primary + Fallback
     const execute = async () => {
       if (method === 'generate') return await provider.generateImage(prompt);
-      if (method === 'enhance') return await provider.enhanceImage(imageSource as any, prompt);
+      if (method === 'enhance') return await provider.enhanceImage(imageSource as string, prompt);
       if (method === 'menu' && provider.generateMenu) return await provider.generateMenu(imageSource as string, prompt);
       if (method === 'menu-fallback' && provider.generateMenuFallback) return await provider.generateMenuFallback(prompt);
       throw new Error(`Method ${method} not supported by provider.`);
     };
 
-    const runWithRetry = async (retries = 1): Promise<any> => {
+    const maxRetries = parseInt(process.env.AI_MAX_RETRIES || '2', 10);
+    const runWithRetry = async (retries = maxRetries): Promise<string | Uint8Array> => {
       try {
         return await Promise.race([
           execute(),
-          new Promise((_, reject) => setTimeout(() => {
+          new Promise<string | Uint8Array>((_, reject) => setTimeout(() => {
             console.warn(`[TIMEOUT_TRIGGERED] Method '${method}' timed out after ${timeout}ms.`);
             reject(new Error('TIMEOUT'));
           }, timeout))
         ]);
-      } catch (e: any) {
-        if (retries > 0 && (e.message === 'TIMEOUT' || e.status === 429 || e.status === 503)) {
+      } catch (e: unknown) {
+        const err = e as Record<string, unknown>;
+        const msg = err?.message; const status = err?.status;
+        if (retries > 0 && (msg === 'TIMEOUT' || status === 429 || status === 503)) {
           console.log(`[AIPipeline] Retrying method '${method}' (${retries} retries left)...`);
           return runWithRetry(retries - 1);
         }
@@ -74,7 +77,7 @@ export class AIPipelineService {
       
       let errorMsg = 'Demorou muito ou falhou';
       if (e instanceof Error) errorMsg = e.message;
-      else if (typeof e === 'object' && e !== null && 'message' in e) errorMsg = String((e as any).message);
+      else if (typeof e === 'object' && e !== null && 'message' in e) errorMsg = String((e as Record<string, unknown>).message);
       
       throw new Error(`Falha na IA: ${errorMsg} (Créditos preservados).`);
     }

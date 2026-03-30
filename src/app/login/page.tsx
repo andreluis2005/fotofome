@@ -118,7 +118,7 @@ export default function LoginPage() {
                 />
               </div>
               <div className="flex justify-end mt-2">
-                <a href="#" className="text-sm text-orange-500 hover:text-orange-400 transition">Esqueceu a senha?</a>
+                <a href="/reset-password" className="text-sm text-orange-500 hover:text-orange-400 transition">Esqueceu a senha?</a>
               </div>
             </div>
 

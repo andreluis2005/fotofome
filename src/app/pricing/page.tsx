@@ -38,7 +38,7 @@ export default function Pricing() {
             
             {pkg.popular && (
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                Mais Pouplar
+                Mais Popular
               </div>
             )}
 

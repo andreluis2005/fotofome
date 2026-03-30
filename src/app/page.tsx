@@ -38,9 +38,9 @@ const galleryImages = [
 
 const pricingPlans = [
   { name: "Teste Grátis", credits: 2, price: "Grátis", description: "Perfeito para testar a magia", popular: false },
-  { name: "Starter", credits: 10, price: "R$ 29", description: "Para pequenos menus", popular: false },
-  { name: "Growth", credits: 50, price: "R$ 99", description: "O favorito dos restaurantes", popular: true },
-  { name: "Pro", credits: 150, price: "R$ 249", description: "Alta demanda profissional", popular: false },
+  { name: "Starter", credits: 10, price: "R$ 49,90", description: "Para pequenos menus", popular: false },
+  { name: "Growth", credits: 30, price: "R$ 119,90", description: "O favorito dos restaurantes", popular: true },
+  { name: "Pro", credits: 100, price: "R$ 349,90", description: "Alta demanda profissional", popular: false },
 ];
 
 export default function LandingPage() {
@@ -103,7 +103,10 @@ export default function LandingPage() {
                   Testar grátis <ArrowRight className="w-5 h-5" />
                 </button>
               </Link>
-              <button className="px-10 py-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold text-lg transition backdrop-blur-sm">
+              <button 
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                className="px-10 py-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold text-lg transition backdrop-blur-sm"
+              >
                 Ver planos
               </button>
             </div>
@@ -223,7 +226,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-24 relative">
+      <section id="pricing" className="py-24 relative">
         <div className="container mx-auto px-6">
           <motion.div {...fadeInUp} className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">Escolha seu pacote</h2>
@@ -304,9 +307,9 @@ export default function LandingPage() {
           </div>
           <p className="text-gray-500 text-sm">© 2026 FotoFome AI. Todos os direitos reservados.</p>
           <div className="flex gap-8 text-gray-400 text-sm">
-            <a href="#" className="hover:text-white transition">Termos</a>
-            <a href="#" className="hover:text-white transition">Privacidade</a>
-            <a href="#" className="hover:text-white transition">Suporte</a>
+            <a href="/termos" className="hover:text-white transition">Termos</a>
+            <a href="/privacidade" className="hover:text-white transition">Privacidade</a>
+            <a href="mailto:suporte@fotofome.ai" className="hover:text-white transition">Suporte</a>
           </div>
         </div>
       </footer>
